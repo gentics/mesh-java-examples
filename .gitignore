@@ -1,0 +1,10 @@
+/videos
+/uploads
+/data
+/keystore
+/es
+.project
+.settings
+.classpath
+target
+
