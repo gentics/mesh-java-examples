@@ -1,50 +1,41 @@
 package com.gentics.mesh.example.websocket;
 
-import com.gentics.mesh.Events;
-import com.gentics.mesh.rest.client.MeshRestClient;
+import java.io.IOException;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.gentics.mesh.core.rest.MeshEvent;
+import com.gentics.mesh.rest.client.MeshRestClient;
+import com.gentics.mesh.rest.client.MeshWebsocket;
 
 /**
  * Example program which will register on node update and custom events and print these on the console.
  */
 public class EventbusClientReceiver {
 
-	public static void main(String[] args) {
-		Vertx vertx = Vertx.vertx();
-		MeshRestClient client = MeshRestClient.create("demo.getmesh.io", 443, true, vertx);
+	public static void main(String[] args) throws IOException {
+		MeshRestClient client = MeshRestClient.create("demo.getmesh.io", 443, true);
 		client.setLogin("admin", "admin");
 		client.login().blockingGet();
 
-		client.eventbus(ws -> {
-			// Register on node update events
-			JsonObject msg = new JsonObject().put("type", "register").put("address", Events.EVENT_NODE_UPDATED);
-			ws.writeFrame(io.vertx.core.http.WebSocketFrame.textFrame(msg.encode(), true));
+		MeshWebsocket eb = client.eventbus();
+		// Register on node update events
+		eb.registerEvents(MeshEvent.NODE_UPDATED.address);
 
-			// Register on our own custom event. The EventbusClientSender program can be run in-parallel to send the messages
-			JsonObject msg2 = new JsonObject().put("type", "register").put("address", "custom.my-own-event-name");
-			ws.writeFrame(io.vertx.core.http.WebSocketFrame.textFrame(msg2.encode(), true));
+		// Register on our own custom event. The EventbusClientSender program can be run in-parallel to send the messages
+		eb.registerEvents("custom.my-own-event-name");
 
-			// Handle events
-			ws.handler(buff -> {
-				String str = buff.toString();
-				if (!str.equals("ping")) {
-					JsonObject received = new JsonObject(str);
-					Object rec = received.getValue("body");
-					System.out.println("Handler: " + rec.toString());
-				}
-			});
-
-			// Send ping messages to keep the connection alive
-			vertx.setPeriodic(800, th -> {
-				JsonObject pingMsg = new JsonObject().put("type", "ping");
-				ws.writeFrame(io.vertx.core.http.WebSocketFrame.textFrame(pingMsg.encode(), true));
-			});
-
-		}, fh -> {
-			fh.printStackTrace();
+		// Handle events
+		eb.events().subscribe(event -> {
+			ObjectNode body = event.getBodyAsJson();
+			if (body != null) {
+				long count = body.get("counter").asLong(0);
+				System.out.println("Handler: " + count);
+			}
 		});
+
+		System.out.println("Press any key to stop receiver");
+		System.in.read();
+
 	}
 
 }

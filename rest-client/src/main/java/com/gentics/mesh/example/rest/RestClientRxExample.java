@@ -1,5 +1,8 @@
 package com.gentics.mesh.example.rest;
 
+import java.io.File;
+import java.io.FileInputStream;
+
 import com.gentics.mesh.core.rest.node.NodeCreateRequest;
 import com.gentics.mesh.core.rest.node.field.impl.HtmlFieldImpl;
 import com.gentics.mesh.core.rest.node.field.impl.NodeFieldImpl;
@@ -8,9 +11,6 @@ import com.gentics.mesh.core.rest.node.field.impl.StringFieldImpl;
 import com.gentics.mesh.parameter.LinkType;
 import com.gentics.mesh.parameter.client.NodeParametersImpl;
 import com.gentics.mesh.rest.client.MeshRestClient;
-
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 
 /**
  * Basic REST Client Example
@@ -26,8 +26,7 @@ public class RestClientRxExample {
 	final static long TS = System.currentTimeMillis();
 
 	public static void main(String[] args) {
-		Vertx vertx = Vertx.vertx();
-		MeshRestClient client = MeshRestClient.create("demo.getmesh.io", 443, true, vertx);
+		MeshRestClient client = MeshRestClient.create("demo.getmesh.io", 443, true);
 		client.setLogin("admin", "admin");
 		client.login().blockingGet();
 
@@ -39,9 +38,13 @@ public class RestClientRxExample {
 		request.getFields().put("name", new StringFieldImpl().setString("Volkswagen Beetle"));
 		client.createNode(PROJECT_NAME, request).toSingle().flatMap(imageNode -> {
 			// 2. Upload the image data - by updating the image field of the node
-			Buffer buffer = vertx.fileSystem().readFileBlocking("images/vw-beetle.jpeg");
-			return client.updateNodeBinaryField(PROJECT_NAME, imageNode.getUuid(), imageNode.getLanguage(), imageNode.getVersion(), "image", buffer,
-				"vw-beetle_" + TS + ".jpeg", "image/jpeg").toSingle();
+			File file = new File("images/vw-beetle.jpeg");
+			FileInputStream fis = new FileInputStream(file);
+			long fileSize = file.length();
+			return client
+				.updateNodeBinaryField(PROJECT_NAME, imageNode.getUuid(), imageNode.getLanguage(), imageNode.getVersion(), "image", fis, fileSize,
+					"vw-beetle_" + TS + ".jpeg", "image/jpeg")
+				.toSingle();
 		}).flatMap(node -> {
 			// 2. Create the vehicle node
 			NodeCreateRequest nodeRequest = new NodeCreateRequest();

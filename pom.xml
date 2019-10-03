@@ -8,7 +8,7 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<mesh.version>0.28.2</mesh.version>
+		<mesh.version>1.0.0</mesh.version>
 	</properties>
 
 	<modules>

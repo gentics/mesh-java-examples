@@ -1,5 +1,9 @@
 package com.gentics.mesh.example.rest;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+
 import com.gentics.mesh.core.rest.node.NodeCreateRequest;
 import com.gentics.mesh.core.rest.node.NodeResponse;
 import com.gentics.mesh.core.rest.node.field.impl.HtmlFieldImpl;
@@ -9,9 +13,6 @@ import com.gentics.mesh.core.rest.node.field.impl.StringFieldImpl;
 import com.gentics.mesh.parameter.LinkType;
 import com.gentics.mesh.parameter.client.NodeParametersImpl;
 import com.gentics.mesh.rest.client.MeshRestClient;
-
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 
 /**
  * Basic REST Client Example
@@ -24,9 +25,8 @@ public class RestClientBlockingExample {
 	final static String VEHICLE_SCHEMA_UUID = "2aa83a2b3cba40a1a83a2b3cba90a1de";
 	final static String IMAGES_FOLDER_UUID = "15d5ef7a9abf416d95ef7a9abf316d68";
 
-	public static void main(String[] args) {
-		Vertx vertx = Vertx.vertx();
-		MeshRestClient client = MeshRestClient.create("demo.getmesh.io", 443, true, vertx);
+	public static void main(String[] args) throws FileNotFoundException {
+		MeshRestClient client = MeshRestClient.create("demo.getmesh.io", 443, true);
 		client.setLogin("admin", "admin");
 		client.login().blockingGet();
 
@@ -39,8 +39,10 @@ public class RestClientBlockingExample {
 		NodeResponse imageNode = client.createNode(PROJECT_NAME, request).toSingle().blockingGet();
 
 		// 2. Upload the image data - by updating the image field of the node
-		Buffer buffer = vertx.fileSystem().readFileBlocking("images/vw-beetle.jpeg");
-		client.updateNodeBinaryField(PROJECT_NAME, imageNode.getUuid(), imageNode.getLanguage(), imageNode.getVersion(), "image", buffer,
+		File file = new File("images/vw-beetle.jpeg");
+		FileInputStream fis = new FileInputStream(file);
+		long fileSize = file.length();
+		client.updateNodeBinaryField(PROJECT_NAME, imageNode.getUuid(), imageNode.getLanguage(), imageNode.getVersion(), "image", fis, fileSize,
 			"vw-beetle.jpeg", "image/jpeg").toSingle().blockingGet();
 
 		// 2. Create the vehicle node
